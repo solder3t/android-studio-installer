@@ -1,0 +1,18 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Android Studio
+Comment=The official IDE for Android development
+GenericName=IDE
+Exec=/usr/bin/android-studio %f
+Icon=android-studio
+Terminal=false
+Categories=Development;IDE;
+StartupNotify=true
+StartupWMClass=android-studio
+Actions=new-project;
+
+[Desktop Action new-project]
+Name=New Project
+Exec=/usr/bin/android-studio
+Icon=android-studio
