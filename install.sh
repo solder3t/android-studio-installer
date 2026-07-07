@@ -324,10 +324,12 @@ fi
 
 # Create a thin wrapper so the binary name is "android-studio" in the shell
 WRAPPER_SCRIPT="$TEMP_DIR/android-studio-wrapper"
-cat >"$WRAPPER_SCRIPT" <<WRAPPER
+cat >"$WRAPPER_SCRIPT" <<'WRAPPER'
 #!/usr/bin/env bash
-exec "${TARGET_APP_DIR}/bin/${BINARY_WRAPPER}" "\$@"
+exec "__TARGET_APP_DIR__/bin/__BINARY_WRAPPER__" "$@"
 WRAPPER
+sed -i "s|__TARGET_APP_DIR__|${TARGET_APP_DIR}|g" "$WRAPPER_SCRIPT"
+sed -i "s|__BINARY_WRAPPER__|${BINARY_WRAPPER}|g" "$WRAPPER_SCRIPT"
 chmod +x "$WRAPPER_SCRIPT"
 
 escalate_cmd rm -f "$TARGET_BIN_PATH"
@@ -407,7 +409,9 @@ fi
 
 # ── Update Desktop Database ──────────────────────────────────────────────────
 echo -e "${YELLOW}Updating desktop database...${NC}"
-escalate_cmd update-desktop-database "$DESKTOP_ENTRY_DIR" || true
+if command -v update-desktop-database &>/dev/null; then
+    escalate_cmd update-desktop-database "$DESKTOP_ENTRY_DIR" || true
+fi
 escalate_cmd touch "$DESKTOP_ENTRY_PATH"
 
 # ── Success ──────────────────────────────────────────────────────────────────
