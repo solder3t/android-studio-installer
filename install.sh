@@ -29,7 +29,7 @@ APP_NAME_SHORT="android-studio"
 APP_NAME_PRETTY="Android Studio"
 BINARY_WRAPPER="studio.sh"        # launch script inside the extracted directory
 APP_COMMENT="The official IDE for Android development"
-WM_CLASS="android-studio"
+WM_CLASS="jetbrains-studio"
 
 # ── Bundled Fallback (used if the update feed is unreachable) ────────────────
 FALLBACK_VERSION="2026.1.1.10"

@@ -9,7 +9,7 @@ Icon=android-studio
 Terminal=false
 Categories=Development;IDE;
 StartupNotify=true
-StartupWMClass=android-studio
+StartupWMClass=jetbrains-studio
 Actions=new-project;
 
 [Desktop Action new-project]
