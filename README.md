@@ -1,14 +1,14 @@
-# Android Studio Fedora Installer
+# Android Studio Linux Installer
 
-Native installation and packaging utility for running **Android Studio** on Fedora Workstation.
+Native installation and packaging utility for running **Android Studio** on Linux.
 
-This project supports installation via a direct shell script (`install.sh`) or a native Fedora RPM package built locally.
+This project supports installation via a direct shell script (`install.sh`) or a native RPM package (for Fedora/RHEL-based distros) built locally.
 
 ---
 
 ## 🛠️ Method A: Direct Script Installation
 
-The easiest way to install Android Studio is by running the installer directly.
+The easiest way to install Android Studio is by running the installer directly. Works on any `glibc`-based Linux distro (Fedora, Debian/Ubuntu, Arch, openSUSE, etc.).
 
 ### Usage
 
@@ -51,7 +51,7 @@ Depending on the install scope (system-wide vs. user-local):
 
 ## 📦 Method B: RPM Package Distribution
 
-You can build and install a native RPM package for Fedora using the provided spec file.
+For **Fedora / RHEL / CentOS Stream** users, you can build and install a native RPM package using the provided spec file.
 
 ### 1. Install Build Prerequisites
 ```bash
@@ -129,27 +129,49 @@ sudo dnf remove android-studio
 
 | Requirement | Minimum |
 | :--- | :--- |
-| **OS** | Fedora 38+ (any recent Linux distro) |
+| **OS** | Any modern `glibc`-based Linux distro |
 | **Architecture** | x86_64 only (Android Studio has no official Linux ARM64 build) |
 | **RAM** | 8 GB (16 GB recommended) |
 | **Disk** | 8 GB free (for IDE + SDK + one emulator image) |
 | **Java** | Bundled JDK — no system JDK required |
 | **Display** | 1280×800 minimum resolution |
 
+### Distro Compatibility
+
+| Distro | `install.sh` | RPM (`build.sh`) |
+| :--- | :--- | :--- |
+| Fedora / RHEL / CentOS | ✅ Full | ✅ Full |
+| Debian / Ubuntu / Mint | ✅ Full | ❌ Use `install.sh` |
+| Arch / Manjaro | ✅ Full | ❌ Use `install.sh` |
+| openSUSE | ✅ Full | ❌ Use `install.sh` |
+| NixOS | ⚠️ Desktop entry may not register | ❌ Use `install.sh` |
+
 ---
 
-## ⚙️ Additional Fedora Tips
+## ⚙️ Additional Tips
 
-**Enable hardware acceleration for the emulator:**
+### KVM hardware acceleration (emulator)
 ```bash
+# Fedora / RHEL
 sudo dnf install -y qemu-kvm
+
+# Debian / Ubuntu
+sudo apt install -y qemu-kvm
+
+# Arch
+sudo pacman -S qemu-base
+
 sudo usermod -aG kvm $USER
 # Log out and back in for the group change to take effect
 ```
 
-**Install missing SDK dependencies (if the emulator crashes):**
+### Missing SDK dependencies (if the emulator crashes)
 ```bash
+# Fedora / RHEL
 sudo dnf install -y libglu1-mesa libpulse libGL
+
+# Debian / Ubuntu
+sudo apt install -y libglu1-mesa libpulse0 libgl1
 ```
 
 ---
