@@ -11,6 +11,7 @@
 #   --url <url>        Override the default download URL.
 #   --dry-run          Run pre-flight checks and download the package but do not write any files.
 #   -y, --yes          Automatic yes to prompts (bypass confirmation).
+#   --offline          Skip version check and use the bundled fallback version.
 #   -h, --help         Show help message.
 
 set -euo pipefail
@@ -23,26 +24,28 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# ── Application Metadata ────────────────────────────────────────────────────
+# ── Application Constants ────────────────────────────────────────────────────
 APP_NAME_SHORT="android-studio"
 APP_NAME_PRETTY="Android Studio"
-APP_VERSION="2026.1.1.10"
-APP_CODENAME="quail1-patch2"   # filename slug used in Google's download URL
 BINARY_WRAPPER="studio.sh"        # launch script inside the extracted directory
 APP_COMMENT="The official IDE for Android development"
 WM_CLASS="android-studio"
 
-# ── Download URLs ────────────────────────────────────────────────────────────
-# Android Studio only ships x86_64 for Linux (no official ARM64 tar.gz build).
-DOWNLOAD_URL_X64="https://dl.google.com/dl/android/studio/ide-zips/${APP_VERSION}/android-studio-${APP_CODENAME}-linux.tar.gz"
-# Normalised expected folder name inside the archive
-EXPECTED_EXTRACTED_DIR="android-studio"
+# ── Bundled Fallback (used if the update feed is unreachable) ────────────────
+FALLBACK_VERSION="2026.1.1.10"
+FALLBACK_CODENAME="quail1-patch2"
+
+# ── Runtime State ────────────────────────────────────────────────────────────
+APP_VERSION=""      # resolved at runtime
+APP_CODENAME=""     # resolved at runtime
+DOWNLOAD_URL_X64="" # resolved at runtime
 
 # ── Runtime State ────────────────────────────────────────────────────────────
 INSTALL_SCOPE="system"
 DOWNLOAD_URL=""
 DRY_RUN=false
 AUTO_CONFIRM=false
+OFFLINE=false
 TEMP_DIR=""
 BACKUP_APP_DIR=""
 INSTALL_SUCCESSFUL=false
@@ -61,11 +64,13 @@ show_help() {
     cat <<EOF
 Usage: $(basename "$0") [options]
 
-Installs ${APP_NAME_PRETTY} ${APP_VERSION} on Linux.
+Installs the latest stable ${APP_NAME_PRETTY} on Linux.
+The latest version is resolved automatically from Google's update feed.
 
 Options:
   --user             Install to user space (~/.local) without requiring root/sudo.
-  --url <url>        Override the default download URL.
+  --url <url>        Override the download URL (skips version auto-detection).
+  --offline          Skip the version feed check; use the bundled fallback version.
   --dry-run          Perform pre-flight checks and package download only. No files written.
   -y, --yes          Automatic yes to prompts (bypass confirmation during upgrades).
   -h, --help         Show this help message.
@@ -96,6 +101,10 @@ while [[ $# -gt 0 ]]; do
             AUTO_CONFIRM=true
             shift
             ;;
+        --offline)
+            OFFLINE=true
+            shift
+            ;;
         -h|--help)
             show_help
             exit 0
@@ -108,8 +117,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo -e "${BLUE}${BOLD}=== Android Studio Fedora Installer ===${NC}"
-echo -e "${BLUE}Version: ${BOLD}${APP_VERSION}${NC}"
+echo -e "${BLUE}${BOLD}=== Android Studio Linux Installer ===${NC}"
 
 # ── Architecture Check ───────────────────────────────────────────────────────
 ARCH=$(uname -m)
@@ -118,10 +126,110 @@ if [[ "$ARCH" != "x86_64" ]]; then
     exit 1
 fi
 
-# Set download URL if not overridden
+# ── Version Auto-Detection ──────────────────────────────────────────────────
+# Derives the download slug from the update feed version string, then probes
+# Google's CDN to find the correct numeric version (which the feed omits).
+# Falls back to FALLBACK_VERSION/FALLBACK_CODENAME if the feed is unreachable.
+resolve_latest_version() {
+    local feed_url="https://dl.google.com/android/studio/patches/updates.xml"
+    local base_dl="https://dl.google.com/dl/android/studio/ide-zips"
+
+    echo -e "${YELLOW}Checking for the latest stable release...${NC}"
+
+    # Fetch the update XML; timeout quickly so we don't stall the install
+    local xml
+    xml=$(curl -fsSL --max-time 8 "$feed_url" 2>/dev/null) || true
+
+    if [[ -z "$xml" ]]; then
+        echo -e "${YELLOW}Warning: Update feed unreachable. Using bundled fallback v${FALLBACK_VERSION}.${NC}"
+        APP_VERSION="$FALLBACK_VERSION"
+        APP_CODENAME="$FALLBACK_CODENAME"
+        return
+    fi
+
+    # Extract the first <build version="..."> inside the release channel
+    # The release channel has status="release"; it appears before beta/canary
+    local ver_string
+    ver_string=$(echo "$xml" | grep -A1 'status="release"' | grep -oP '(?<=version=")[^"]+' | head -1)
+
+    if [[ -z "$ver_string" ]]; then
+        echo -e "${YELLOW}Warning: Could not parse update feed. Using bundled fallback v${FALLBACK_VERSION}.${NC}"
+        APP_VERSION="$FALLBACK_VERSION"
+        APP_CODENAME="$FALLBACK_CODENAME"
+        return
+    fi
+
+    # Derive base version (e.g. "Quail 1 | 2026.1.1 Patch 2" -> "2026.1.1")
+    local base_ver
+    base_ver=$(echo "$ver_string" | grep -oP '\d{4}\.\d+\.\d+')
+
+    # Derive codename slug:
+    #   "Quail 1 | 2026.1.1"          -> "quail1"
+    #   "Quail 1 | 2026.1.1 Patch 2"  -> "quail1-patch2"
+    local codename_raw
+    codename_raw=$(echo "$ver_string" | sed -E 's/ \| [0-9].*//' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+    local patch_raw
+    patch_raw=$(echo "$ver_string" | grep -oiP 'Patch \d+' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+
+    local slug
+    if [[ -n "$patch_raw" ]]; then
+        slug="${codename_raw}-${patch_raw}"
+    else
+        slug="${codename_raw}"
+    fi
+
+    echo -e "${BLUE}Latest stable: ${BOLD}${ver_string}${NC}"
+    echo -e "${BLUE}Codename slug: ${BOLD}${slug}${NC}"
+
+    # Probe the CDN to find the correct numeric version.
+    # The feed omits this number so we scan downward from a ceiling.
+    # We start from FALLBACK_VERSION's last segment + a small buffer.
+    local base_prefix major_ver patch_floor probe_ver found_ver=""
+    major_ver=$(echo "$base_ver" | cut -d. -f1-3)   # e.g. 2026.1.1
+    patch_floor=$(echo "$FALLBACK_VERSION" | grep -oP '\d+$') # last segment of fallback, e.g. 10
+    local ceiling=$(( patch_floor + 20 ))
+
+    echo -e "${YELLOW}Probing CDN for version number (this is fast)...${NC}"
+    for (( n=ceiling; n>=1; n-- )); do
+        probe_ver="${major_ver}.${n}"
+        local probe_url="${base_dl}/${probe_ver}/android-studio-${slug}-linux.tar.gz"
+        local code
+        code=$(curl -sI --max-time 4 "$probe_url" -o /dev/null -w "%{http_code}" 2>/dev/null)
+        if [[ "$code" == "200" ]]; then
+            found_ver="$probe_ver"
+            break
+        fi
+    done
+
+    if [[ -z "$found_ver" ]]; then
+        echo -e "${YELLOW}Warning: Could not locate download for '${slug}'. Using bundled fallback v${FALLBACK_VERSION}.${NC}"
+        APP_VERSION="$FALLBACK_VERSION"
+        APP_CODENAME="$FALLBACK_CODENAME"
+        return
+    fi
+
+    APP_VERSION="$found_ver"
+    APP_CODENAME="$slug"
+    echo -e "${GREEN}✓ Resolved: Android Studio ${APP_VERSION} (${APP_CODENAME})${NC}"
+}
+
+# Resolve version unless --url was given (user supplied their own) or --offline
+if [[ -z "$DOWNLOAD_URL" && "$OFFLINE" == "false" ]]; then
+    resolve_latest_version
+else
+    # Use fallback values for offline/url-override mode
+    APP_VERSION="$FALLBACK_VERSION"
+    APP_CODENAME="$FALLBACK_CODENAME"
+    [[ "$OFFLINE" == "true" ]] && echo -e "${YELLOW}Offline mode: using bundled fallback v${APP_VERSION}.${NC}"
+fi
+
+DOWNLOAD_URL_X64="https://dl.google.com/dl/android/studio/ide-zips/${APP_VERSION}/android-studio-${APP_CODENAME}-linux.tar.gz"
+
+# Set download URL if not overridden by --url
 [[ -z "$DOWNLOAD_URL" ]] && DOWNLOAD_URL="$DOWNLOAD_URL_X64"
 
-echo -e "${BLUE}Architecture: ${BOLD}${ARCH}${NC}"
+echo -e "${BLUE}Version:       ${BOLD}${APP_VERSION}${NC}"
+echo -e "${BLUE}Architecture:  ${BOLD}${ARCH}${NC}"
 echo -e "${BLUE}Install scope: ${BOLD}${INSTALL_SCOPE}${NC}"
 
 # ── Path Definitions ─────────────────────────────────────────────────────────

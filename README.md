@@ -26,7 +26,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/solder3t/android-studio-inst
 | Option | Argument | Description |
 | :--- | :--- | :--- |
 | `--user` | *None* | Install to user space (`~/.local`) without requiring root/sudo. |
-| `--url` | `<url>` | Override the default download URL (useful when a newer patch is released). |
+| `--url` | `<url>` | Override the download URL (skips version auto-detection). |
+| `--offline` | *None* | Skip the version feed check; use the bundled fallback version. |
 | `--dry-run` | *None* | Perform validation checks and download the package without writing any files. |
 | `-y, --yes` | *None* | Automatically accept prompts during upgrades or reinstallations. |
 | `-h, --help` | *None* | Display usage guide and exit. |
