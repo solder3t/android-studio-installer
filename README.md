@@ -14,7 +14,12 @@ The easiest way to install Android Studio is by running the installer directly. 
 
 **One-liner (No clone required):**
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/solder3t/android-studio-installer/main/install.sh) [options]
+bash <(curl -fsSL https://raw.githubusercontent.com/solder3t/android-studio-installer/main/install.sh)
+```
+
+**Using the website shortcut (recommended):**
+```bash
+curl -fsSL https://solder3t.github.io/android-studio-installer | sh
 ```
 
 **Local script:**
