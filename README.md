@@ -183,4 +183,7 @@ sudo apt install -y libglu1-mesa libpulse0 libgl1
 ---
 
 ## 📄 License
-This installer project is open-source. The upstream Android Studio binaries packaged by this utility are proprietary and subject to the [Android Studio Terms of Service](https://developer.android.com/studio/terms).
+
+This installer project is open-source and licensed under the [MIT License](LICENSE). 
+
+The upstream Android Studio binaries packaged by this utility are proprietary and subject to the [Android Studio Terms of Service](https://developer.android.com/studio/terms).
