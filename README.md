@@ -14,7 +14,7 @@ The easiest way to install Android Studio is by running the installer directly.
 
 **One-liner (No clone required):**
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_USER/android-studio-fedora-installer/main/install.sh) [options]
+bash <(curl -fsSL https://raw.githubusercontent.com/solder3t/android-studio-installer/main/install.sh) [options]
 ```
 
 **Local script:**
