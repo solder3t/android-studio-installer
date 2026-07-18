@@ -32,8 +32,8 @@ APP_COMMENT="The official IDE for Android development"
 WM_CLASS="jetbrains-studio"
 
 # ── Bundled Fallback (used if the update feed is unreachable) ────────────────
-FALLBACK_VERSION="2026.1.1.10"
-FALLBACK_CODENAME="quail1-patch2"
+FALLBACK_VERSION="2026.1.2.10"
+FALLBACK_CODENAME="quail2"
 
 # ── Runtime State ────────────────────────────────────────────────────────────
 APP_VERSION=""      # resolved at runtime
@@ -150,7 +150,7 @@ resolve_latest_version() {
     # Extract the first <build version="..."> inside the release channel
     # The release channel has status="release"; it appears before beta/canary
     local ver_string
-    ver_string=$(echo "$xml" | grep -A1 'status="release"' | grep -oP '(?<=version=")[^"]+' | head -1)
+    ver_string=$(echo "$xml" | grep -A1 'status="release"' | grep -oP '(?<=version=")[^"]+' | head -1 || true)
 
     if [[ -z "$ver_string" ]]; then
         echo -e "${YELLOW}Warning: Could not parse update feed. Using bundled fallback v${FALLBACK_VERSION}.${NC}"
@@ -161,7 +161,14 @@ resolve_latest_version() {
 
     # Derive base version (e.g. "Quail 1 | 2026.1.1 Patch 2" -> "2026.1.1")
     local base_ver
-    base_ver=$(echo "$ver_string" | grep -oP '\d{4}\.\d+\.\d+')
+    base_ver=$(echo "$ver_string" | grep -oP '\d{4}\.\d+\.\d+' || true)
+
+    if [[ -z "$base_ver" ]]; then
+        echo -e "${YELLOW}Warning: Could not parse base version from '${ver_string}'. Using bundled fallback v${FALLBACK_VERSION}.${NC}"
+        APP_VERSION="$FALLBACK_VERSION"
+        APP_CODENAME="$FALLBACK_CODENAME"
+        return
+    fi
 
     # Derive codename slug:
     #   "Quail 1 | 2026.1.1"          -> "quail1"
@@ -169,7 +176,7 @@ resolve_latest_version() {
     local codename_raw
     codename_raw=$(echo "$ver_string" | sed -E 's/ \| [0-9].*//' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
     local patch_raw
-    patch_raw=$(echo "$ver_string" | grep -oiP 'Patch \d+' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+    patch_raw=$(echo "$ver_string" | grep -oiP 'Patch \d+' | tr '[:upper:]' '[:lower:]' | tr -d ' ' || true)
 
     local slug
     if [[ -n "$patch_raw" ]]; then
@@ -186,7 +193,7 @@ resolve_latest_version() {
     # We start from FALLBACK_VERSION's last segment + a small buffer.
     local base_prefix major_ver patch_floor probe_ver found_ver=""
     major_ver=$(echo "$base_ver" | cut -d. -f1-3)   # e.g. 2026.1.1
-    patch_floor=$(echo "$FALLBACK_VERSION" | grep -oP '\d+$') # last segment of fallback, e.g. 10
+    patch_floor=$(echo "$FALLBACK_VERSION" | grep -oP '\d+$' || echo "1") # last segment of fallback, e.g. 10
     local ceiling=$(( patch_floor + 20 ))
 
     echo -e "${YELLOW}Probing CDN for version number (this is fast)...${NC}"

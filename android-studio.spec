@@ -8,7 +8,7 @@
 %global __requires_exclude ^(libstdc\+\+\.so\.6.*|libgcc_s\.so\.1.*|/usr/bin/python3)
 
 Name:           android-studio
-Version:        2026.1.1.10
+Version:        2026.1.2.10
 Release:        1%{?dist}
 Summary:        The official IDE for Android development
 
@@ -17,7 +17,7 @@ URL:            https://developer.android.com/studio
 ExclusiveArch:  x86_64
 
 # Android Studio only ships a single Linux x86_64 archive (no ARM64 build available)
-Source0:        https://dl.google.com/dl/android/studio/ide-zips/%{version}/android-studio-quail1-patch2-linux.tar.gz
+Source0:        https://dl.google.com/dl/android/studio/ide-zips/%{version}/android-studio-quail2-linux.tar.gz
 Source1:        android-studio.desktop
 
 BuildRequires:  tar
@@ -92,5 +92,8 @@ install -m 644 %{buildroot}/opt/android-studio/bin/studio.png \
 %{_datadir}/pixmaps/android-studio.png
 
 %changelog
+* Sat Jul 18 2026 solder3t <adityas@example.com> - 2026.1.2.10-1
+- Update to Android Studio Quail 2 (2026.1.2.10)
+
 * Mon Jul 07 2026 Aditya <adityas@example.com> - 2026.1.1.10-1
 - Initial RPM packaging of Android Studio Quail 1 Patch 2 (2026.1.1.10) for Fedora
