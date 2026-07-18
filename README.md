@@ -55,26 +55,45 @@ Depending on the install scope (system-wide vs. user-local):
 
 ---
 
-## 📦 Method B: RPM Package Distribution
+## 📦 Method B: Native Package Distribution (RPM & DEB)
 
-For **Fedora / RHEL / CentOS Stream** users, you can build and install a native RPM package using the provided spec file.
+You can build a native `.rpm` (for Fedora/RHEL) or `.deb` (for Debian/Ubuntu) package from the source files using the unified `build.sh` script.
 
 ### 1. Install Build Prerequisites
+
+*   **For RPM (Fedora/RHEL)**:
+    ```bash
+    sudo dnf install -y spectool rpkg tar gzip
+    ```
+*   **For DEB (Debian/Ubuntu/Fedora)**:
+    Ensure `dpkg-deb` is installed. On Fedora:
+    ```bash
+    sudo dnf install -y dpkg
+    ```
+
+### 2. Build the Package
+
+The `build.sh` script auto-detects your platform packaging tool by default, but you can explicitly specify the format:
+
 ```bash
-sudo dnf install -y spectool rpkg tar gzip
+./build.sh          # Auto-detects based on system utilities
+./build.sh rpm      # Builds RPM package only
+./build.sh deb      # Builds Debian package only
+./build.sh all      # Builds both RPM and DEB packages
 ```
 
-### 2. Build the RPM
-```bash
-./build.sh
-```
+Output packages will be generated in `~/rpkg/` (or the directory defined by `$OUTDIR`).
 
-The output RPM will be generated in `~/rpkg/` (or the directory defined by `$OUTDIR`).
+### 3. Install the Package
 
-### 3. Install the RPM
-```bash
-sudo dnf install ~/rpkg/x86_64/android-studio-2026.1.1.10-*.rpm
-```
+*   **Fedora/RHEL (RPM)**:
+    ```bash
+    sudo dnf install ~/rpkg/x86_64/android-studio-*.rpm
+    ```
+*   **Debian/Ubuntu (DEB)**:
+    ```bash
+    sudo apt install ~/rpkg/android-studio_*.deb
+    ```
 
 ---
 
@@ -83,7 +102,7 @@ sudo dnf install ~/rpkg/x86_64/android-studio-2026.1.1.10-*.rpm
 | Method | Command |
 | :--- | :--- |
 | Terminal (script install) | `android-studio` |
-| Terminal (RPM install) | `android-studio` |
+| Terminal (package install) | `android-studio` |
 | Application Menu | Search for **Android Studio** |
 
 ### First Launch
@@ -124,10 +143,15 @@ To upgrade to a specific release:
 > rm -rf ~/Android/Sdk ~/.android
 > ```
 
-### RPM-Based Uninstallation
-```bash
-sudo dnf remove android-studio
-```
+### Package-Based Uninstallation
+*   **Fedora/RHEL (RPM)**:
+    ```bash
+    sudo dnf remove android-studio
+    ```
+*   **Debian/Ubuntu (DEB)**:
+    ```bash
+    sudo apt remove android-studio
+    ```
 
 ---
 
@@ -144,13 +168,13 @@ sudo dnf remove android-studio
 
 ### Distro Compatibility
 
-| Distro | `install.sh` | RPM (`build.sh`) |
+| Distro | `install.sh` | Packaging (`build.sh`) |
 | :--- | :--- | :--- |
-| Fedora / RHEL / CentOS | ✅ Full | ✅ Full |
-| Debian / Ubuntu / Mint | ✅ Full | ❌ Use `install.sh` |
-| Arch / Manjaro | ✅ Full | ❌ Use `install.sh` |
-| openSUSE | ✅ Full | ❌ Use `install.sh` |
-| NixOS | ⚠️ Desktop entry may not register | ❌ Use `install.sh` |
+| Fedora / RHEL / CentOS | ✅ Full | ✅ RPM Package |
+| Debian / Ubuntu / Mint | ✅ Full | ✅ DEB Package |
+| Arch / Manjaro | ✅ Full | ❌ Not packaged (use `install.sh`) |
+| openSUSE | ✅ Full | ❌ Not packaged (use `install.sh`) |
+| NixOS | ⚠️ Desktop entry may not register | ❌ Not packaged (use `install.sh`) |
 
 ---
 
